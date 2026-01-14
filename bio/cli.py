@@ -47,6 +47,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     opt.add_argument("--dry-run", action="store_true", help="Estimate savings without writing files")
     opt.add_argument(
+        "--preset",
+        choices=["blog", "ecommerce", "aggressive", "webp"],
+        help="Apply a predefined optimization preset",
+    )
+    opt.add_argument(
         "--allow-bigger-for-metadata",
         action="store_true",
         help="If stripping metadata, still write even if output isn't smaller",
@@ -126,6 +131,10 @@ def main(argv: list[str] | None = None) -> int:
             webp_lossless=bool(args.webp_lossless),
             dry_run=bool(args.dry_run),
         )
+
+        if args.preset:
+            from .presets import apply_preset
+            settings = apply_preset(args.preset, settings)
 
         results, summary = process_batch(
             inputs,
