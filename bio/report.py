@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import csv
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -66,3 +67,40 @@ def save_report_json(report: BatchReport, path: Path) -> None:
 
     with path.open("w", encoding="utf-8") as f:
         json.dump(asdict(report), f, indent=2, ensure_ascii=False)
+
+
+def save_report_csv(report: BatchReport, path: Path) -> None:
+    """
+    Save a flat, spreadsheet-friendly CSV report (one row per file).
+    """
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    fieldnames = [
+        "src_path",
+        "out_path",
+        "src_bytes",
+        "out_bytes",
+        "saved_bytes",
+        "saved_percent",
+        "changed",
+        "skipped_reason",
+    ]
+
+    with path.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+
+        for fr in report.files:
+            writer.writerow(
+                {
+                    "src_path": fr.src_path,
+                    "out_path": fr.out_path or "",
+                    "src_bytes": fr.src_bytes,
+                    "out_bytes": fr.out_bytes,
+                    "saved_bytes": fr.saved_bytes,
+                    "saved_percent": fr.saved_percent,
+                    "changed": fr.changed,
+                    "skipped_reason": fr.skipped_reason or "",
+                }
+            )
