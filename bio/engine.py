@@ -55,6 +55,9 @@ def process_image(src_path: Path, s: OptimizeSettings) -> ProcessResult:
         if s.auto_orient:
             im = ImageOps.exif_transpose(im)
 
+        # Center crop (optional)
+        im = _apply_center_crop(im, s)
+
         # Resize (optional)
         im = _apply_resize(im, s)
 
@@ -256,3 +259,45 @@ def _apply_resize(im: Image.Image, s: OptimizeSettings) -> Image.Image:
         return im
 
     return im.resize((new_w, new_h), Image.Resampling.LANCZOS)
+
+
+def _apply_center_crop(im: Image.Image, s: OptimizeSettings) -> Image.Image:
+    """
+    Center-crop an image to the requested aspect ratio (width/height).
+
+    Example ratios:
+      - 1.0 for square (1:1)
+      - 16/9 for widescreen
+      - 4/3 for classic photo
+
+    If s.crop_ratio is None, cropping is skipped.
+    """
+    if s.crop_ratio is None:
+        return im
+
+    ratio = float(s.crop_ratio)
+    if ratio <= 0:
+        return im  # ignore invalid values safely
+
+    w, h = im.size
+    if w <= 0 or h <= 0:
+        return im
+
+    current = w / h
+
+    # Already basically at ratio (avoid tiny rounding crops)
+    if abs(current - ratio) < 1e-6:
+        return im
+
+    if current > ratio:
+        # Image is too wide -> crop width
+        new_w = int(h * ratio)
+        left = (w - new_w) // 2
+        box = (left, 0, left + new_w, h)
+    else:
+        # Image is too tall -> crop height
+        new_h = int(w / ratio)
+        top = (h - new_h) // 2
+        box = (0, top, w, top + new_h)
+
+    return im.crop(box)
