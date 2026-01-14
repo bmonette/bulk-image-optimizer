@@ -84,7 +84,12 @@ class BioGui(tk.Tk):
         self.open_btn = ttk.Button(bottom, text="Open Output Folder", command=self._open_output, state="disabled")
         self.open_btn.pack(side="left", padx=(8, 0))
 
-        self.progress = ttk.Progressbar(bottom, mode="indeterminate")
+        self.progress_var = tk.IntVar(value=0)
+
+        self.progress_label = ttk.Label(bottom, text="0 / 0")
+        self.progress_label.pack(side="right", padx=(8, 0))
+
+        self.progress = ttk.Progressbar(bottom, mode="determinate", variable=self.progress_var)
         self.progress.pack(side="right", fill="x", expand=True, padx=(12, 0))
 
         self.status = tk.Text(root, height=7, wrap="word")
@@ -294,6 +299,13 @@ class BioGui(tk.Tk):
             s = apply_preset(preset, s)
 
         return s, [inp]
+
+    def _set_progress(self, current: int, total: int) -> None:
+        # total can be 0 if folder has no supported files
+        self.progress["maximum"] = max(total, 1)
+        self.progress_var.set(min(current, max(total, 1)))
+        self.progress_label.config(text=f"{current} / {total}")
+
 
     def _parse_optional_int(self, text: str):
         t = text.strip()
