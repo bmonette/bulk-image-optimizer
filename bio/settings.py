@@ -27,6 +27,10 @@ class OptimizeSettings:
     overwrite: bool = False
     only_if_smaller: bool = True
 
+    # If True and strip_metadata=True, we will still write the output even if
+    # it's not smaller, so metadata stripping is guaranteed.
+    write_even_if_bigger_when_stripping_metadata: bool = False
+
     # Naming
     suffix: str = "_optimized"  # e.g. photo.jpg -> photo_optimized.jpg
 
