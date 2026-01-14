@@ -210,12 +210,24 @@ class BioGui(tk.Tk):
 
         self.run_btn.config(state="disabled")
         self.open_btn.config(state="disabled")
-        self.progress.start(10)
+        self.progress_var.set(0)
+        self.progress["maximum"] = 1
+        self.progress_label.config(text="0 / 0")
         self._log("Running...")
 
         def work():
             try:
-                results, summary = process_batch(inputs, settings, recursive=True)
+                def on_progress(current: int, total: int) -> None:
+                    # Schedule UI updates on the main thread (Tkinter-safe)
+                    self.after(0, lambda c=current, t=total: self._set_progress(c, t))
+
+                results, summary = process_batch(
+                    inputs,
+                    settings,
+                    recursive=True,
+                    progress_callback=on_progress,
+                )
+
                 report = build_report(results, summary)
                 save_report_json(report, settings.output_dir / "report.json")
                 save_report_csv(report, settings.output_dir / "report.csv")
@@ -232,9 +244,6 @@ class BioGui(tk.Tk):
                 self.after(0, lambda: self._finish_ok(msg))
             except Exception as ex:
                 self.after(0, lambda: self._finish_err(ex))
-
-        self._worker = threading.Thread(target=work, daemon=True)
-        self._worker.start()
 
     def _finish_ok(self, msg: str) -> None:
         self.progress.stop()
