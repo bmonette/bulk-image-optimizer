@@ -236,12 +236,16 @@ class BioGui(tk.Tk):
                 def on_progress(current: int, total: int) -> None:
                     self._q.put(("progress", current, total))
 
+                def on_file(path: Path, current: int, total: int) -> None:
+                    self._q.put(("file", path.name, current, total))
+
                 results, summary = process_batch(
                     inputs,
                     settings,
                     recursive=True,
                     progress_callback=on_progress,
                     cancel_event=self._cancel_event,
+                    file_callback=on_file,
                 )
 
                 report = build_report(results, summary)
