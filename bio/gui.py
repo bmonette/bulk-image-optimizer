@@ -91,6 +91,9 @@ class BioGui(tk.Tk):
         self.open_btn = ttk.Button(bottom, text="Open Output Folder", command=self._open_output, state="disabled")
         self.open_btn.pack(side="left", padx=(8, 0))
 
+        self.file_label = ttk.Label(bottom, text="", anchor="w")
+        self.file_label.pack(side="left", fill="x", expand=True, padx=(12, 0))
+
         self.progress_var = tk.IntVar(value=0)
 
         self.progress_label = ttk.Label(bottom, text="0 / 0")
@@ -222,6 +225,7 @@ class BioGui(tk.Tk):
         self.progress_var.set(0)
         self.progress["maximum"] = 1
         self.progress_label.config(text="0 / 0")
+        self.file_label.config(text="")
         self._log("Running...")
 
         self._polling = True
