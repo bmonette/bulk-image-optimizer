@@ -1,3 +1,6 @@
+import queue
+from typing import Any
+
 from __future__ import annotations
 
 import threading
@@ -45,6 +48,9 @@ class BioGui(tk.Tk):
         self.webp_lossless = tk.BooleanVar(value=False)
 
         self._worker: threading.Thread | None = None
+
+        self._q: queue.Queue[tuple[str, Any]] = queue.Queue()
+        self._polling = False
 
         # ---------- UI ----------
         self._build_ui()
@@ -215,11 +221,14 @@ class BioGui(tk.Tk):
         self.progress_label.config(text="0 / 0")
         self._log("Running...")
 
+        self._polling = True
+        self.after(50, self._poll_queue)
+
         def work():
             try:
                 def on_progress(current: int, total: int) -> None:
-                    # Schedule UI updates on the main thread (Tkinter-safe)
-                    self.after(0, lambda c=current, t=total: self._set_progress(c, t))
+                    # Worker thread: DO NOT touch Tkinter here
+                    self._q.put(("progress", current, total))
 
                 results, summary = process_batch(
                     inputs,
@@ -241,19 +250,46 @@ class BioGui(tk.Tk):
                     f"Report: {settings.output_dir / 'report.json'}\n"
                     f"CSV   : {settings.output_dir / 'report.csv'}\n"
                 )
-                self.after(0, lambda: self._finish_ok(msg))
+                self._q.put(("done", msg))
             except Exception as ex:
-                self.after(0, lambda: self._finish_err(ex))
+                self._q.put(("error", ex))
+
+    def _poll_queue(self) -> None:
+        # Main thread: safe to touch Tkinter here
+        try:
+            while True:
+                item = self._q.get_nowait()
+                kind = item[0]
+
+                if kind == "progress":
+                    _, current, total = item
+                    self._set_progress(int(current), int(total))
+
+                elif kind == "done":
+                    _, msg = item
+                    self._polling = False
+                    self._finish_ok(str(msg))
+                    return
+
+                elif kind == "error":
+                    _, ex = item
+                    self._polling = False
+                    self._finish_err(ex)
+                    return
+
+        except queue.Empty:
+            pass
+
+        if self._polling:
+            self.after(50, self._poll_queue)
 
     def _finish_ok(self, msg: str) -> None:
-        self.progress.stop()
         self.run_btn.config(state="normal")
         self.open_btn.config(state="normal")
         self._log(msg)
         self._log("Done.")
 
     def _finish_err(self, ex: Exception) -> None:
-        self.progress.stop()
         self.run_btn.config(state="normal")
         self.open_btn.config(state="disabled")
         self._log(f"ERROR: {ex}")
