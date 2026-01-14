@@ -2,6 +2,7 @@ from pathlib import Path
 
 from bio.batch import process_batch
 from bio.settings import OptimizeSettings
+from bio.report import build_report, save_report_json
 
 
 def main() -> None:
@@ -26,6 +27,11 @@ def main() -> None:
     print("Processed  :", summary.processed)
     print("Skipped    :", summary.skipped)
     print(f"Saved      : {summary.saved_bytes} bytes ({summary.saved_percent:.1f}%)")
+
+    report = build_report(results, summary)
+    report_path = settings.output_dir / "report.json"
+    save_report_json(report, report_path)
+    print("\nReport written:", report_path)
 
     # Optional: print skip reasons breakdown (simple)
     reasons = {}
