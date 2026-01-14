@@ -47,8 +47,10 @@ class BioGui(tk.Tk):
         self._worker: threading.Thread | None = None
         self._cancel_event = threading.Event()
 
-        self._q: queue.Queue[tuple[str, Any]] = queue.Queue()
+        self._q: queue.Queue[tuple[Any, ...]] = queue.Queue()
         self._polling = False
+
+        self._option_widgets: list[tk.Widget] = []
 
         # ---------- UI ----------
         self._build_ui()
@@ -111,8 +113,14 @@ class BioGui(tk.Tk):
         row.pack(fill="x", pady=4)
 
         ttk.Label(row, text=label, width=12).pack(side="left")
-        ttk.Entry(row, textvariable=var).pack(side="left", fill="x", expand=True, padx=(6, 6))
-        ttk.Button(row, text="Browse...", command=browse_cmd).pack(side="left")
+
+        entry = ttk.Entry(row, textvariable=var)
+        entry.pack(side="left", fill="x", expand=True, padx=(6, 6))
+
+        btn = ttk.Button(row, text="Browse...", command=browse_cmd)
+        btn.pack(side="left")
+
+        self._option_widgets.extend([entry, btn])
 
     def _build_left(self, parent: ttk.Frame) -> None:
         # Preset
@@ -121,9 +129,14 @@ class BioGui(tk.Tk):
         ttk.Label(row, text="Preset:", width=10).pack(side="left")
 
         presets = ["(none)", "blog", "ecommerce", "aggressive", "webp"]
-        ttk.Combobox(row, textvariable=self.preset, values=presets, state="readonly").pack(
-            side="left", fill="x", expand=True, padx=(6, 0)
+        preset_cb = ttk.Combobox(
+            row,
+            textvariable=self.preset,
+            values=presets,
+            state="readonly",
         )
+        preset_cb.pack(side="left", fill="x", expand=True, padx=(6, 0))
+        self._option_widgets.append(preset_cb)
 
         # Format
         row = ttk.Frame(parent)
@@ -131,24 +144,45 @@ class BioGui(tk.Tk):
         ttk.Label(row, text="Format:", width=10).pack(side="left")
 
         formats = ["keep", "jpeg", "png", "webp"]
-        ttk.Combobox(row, textvariable=self.output_format, values=formats, state="readonly").pack(
-            side="left", fill="x", expand=True, padx=(6, 0)
+        format_cb = ttk.Combobox(
+            row,
+            textvariable=self.output_format,
+            values=formats,
+            state="readonly",
         )
+        format_cb.pack(side="left", fill="x", expand=True, padx=(6, 0))
+        self._option_widgets.append(format_cb)
 
         # Suffix
         row = ttk.Frame(parent)
         row.pack(fill="x", pady=4)
         ttk.Label(row, text="Suffix:", width=10).pack(side="left")
-        ttk.Entry(row, textvariable=self.suffix).pack(side="left", fill="x", expand=True, padx=(6, 0))
+        suffix_entry = ttk.Entry(row, textvariable=self.suffix)
+        suffix_entry.pack(side="left", fill="x", expand=True, padx=(6, 0))
+        self._option_widgets.append(suffix_entry)
 
         ttk.Separator(parent).pack(fill="x", pady=8)
 
         # Toggles
-        ttk.Checkbutton(parent, text="Strip metadata", variable=self.strip_metadata).pack(anchor="w")
-        ttk.Checkbutton(parent, text="Only write if smaller", variable=self.only_if_smaller).pack(anchor="w")
-        ttk.Checkbutton(parent, text="Allow bigger when stripping metadata", variable=self.allow_bigger_for_metadata).pack(anchor="w")
-        ttk.Checkbutton(parent, text="Dry run (estimate only)", variable=self.dry_run).pack(anchor="w")
-        ttk.Checkbutton(parent, text="Allow reprocess (files already ending with suffix)", variable=self.allow_reprocess).pack(anchor="w")
+        cb = ttk.Checkbutton(parent, text="Strip metadata", variable=self.strip_metadata)
+        cb.pack(anchor="w")
+        self._option_widgets.append(cb)
+
+        cb = ttk.Checkbutton(parent, text="Only write if smaller", variable=self.only_if_smaller)
+        cb.pack(anchor="w")
+        self._option_widgets.append(cb)
+
+        cb = ttk.Checkbutton(parent, text="Allow bigger when stripping metadata", variable=self.allow_bigger_for_metadata)
+        cb.pack(anchor="w")
+        self._option_widgets.append(cb)
+
+        cb = ttk.Checkbutton(parent, text="Dry run (estimate only)", variable=self.dry_run)
+        cb.pack(anchor="w")
+        self._option_widgets.append(cb)
+
+        cb = ttk.Checkbutton(parent, text="Allow reprocess (files already ending with suffix)", variable=self.allow_reprocess)
+        cb.pack(anchor="w")
+        self._option_widgets.append(cb)
 
         ttk.Separator(parent).pack(fill="x", pady=8)
 
@@ -156,38 +190,62 @@ class BioGui(tk.Tk):
         row = ttk.Frame(parent)
         row.pack(fill="x", pady=4)
         ttk.Label(row, text="Max width:", width=10).pack(side="left")
-        ttk.Entry(row, textvariable=self.max_width, width=10).pack(side="left", padx=(6, 12))
+
+        maxw_entry = ttk.Entry(row, textvariable=self.max_width, width=10)
+        maxw_entry.pack(side="left", padx=(6, 12))
+        self._option_widgets.append(maxw_entry)
+
         ttk.Label(row, text="Max height:").pack(side="left")
-        ttk.Entry(row, textvariable=self.max_height, width=10).pack(side="left", padx=(6, 0))
+
+        maxh_entry = ttk.Entry(row, textvariable=self.max_height, width=10)
+        maxh_entry.pack(side="left", padx=(6, 0))
+        self._option_widgets.append(maxh_entry)
 
         row = ttk.Frame(parent)
         row.pack(fill="x", pady=4)
         ttk.Label(row, text="Crop ratio:", width=10).pack(side="left")
-        ttk.Entry(row, textvariable=self.crop_ratio).pack(side="left", fill="x", expand=True, padx=(6, 0))
-        ttk.Label(parent, text='Examples: 1:1, 16:9, 4:3, or 1.777', foreground="gray").pack(anchor="w", pady=(2, 0))
+
+        crop_entry = ttk.Entry(row, textvariable=self.crop_ratio)
+        crop_entry.pack(side="left", fill="x", expand=True, padx=(6, 0))
+        self._option_widgets.append(crop_entry)
+
+        ttk.Label(
+            parent,
+            text='Examples: 1:1, 16:9, 4:3, or 1.777',
+            foreground="gray",
+        ).pack(anchor="w", pady=(2, 0))
 
     def _build_right(self, parent: ttk.Frame) -> None:
         # JPEG/WebP options
         row = ttk.Frame(parent)
         row.pack(fill="x", pady=4)
         ttk.Label(row, text="JPEG quality:", width=12).pack(side="left")
-        ttk.Entry(row, textvariable=self.jpeg_quality, width=8).pack(side="left", padx=(6, 0))
+
+        jpegq_entry = ttk.Entry(row, textvariable=self.jpeg_quality, width=8)
+        jpegq_entry.pack(side="left", padx=(6, 0))
+        self._option_widgets.append(jpegq_entry)
 
         row = ttk.Frame(parent)
         row.pack(fill="x", pady=4)
         ttk.Label(row, text="WebP quality:", width=12).pack(side="left")
-        ttk.Entry(row, textvariable=self.webp_quality, width=8).pack(side="left", padx=(6, 0))
 
-        ttk.Checkbutton(parent, text="WebP lossless", variable=self.webp_lossless).pack(anchor="w", pady=(6, 0))
+        webpq_entry = ttk.Entry(row, textvariable=self.webp_quality, width=8)
+        webpq_entry.pack(side="left", padx=(6, 0))
+        self._option_widgets.append(webpq_entry)
+
+        cb = ttk.Checkbutton(parent, text="WebP lossless", variable=self.webp_lossless)
+        cb.pack(anchor="w", pady=(6, 0))
+        self._option_widgets.append(cb)
 
         ttk.Separator(parent).pack(fill="x", pady=10)
 
         ttk.Label(
             parent,
-            text="Notes:\n- GUI v1 uses an indeterminate progress bar.\n- Reports are always written to output folder.",
+            text="Notes:\n- GUI v1 uses a determinate progress bar.\n- Reports are always written to output folder.",
             foreground="gray",
             justify="left",
         ).pack(anchor="w")
+
 
     # ---------------- Actions ----------------
     def _browse_input(self) -> None:
@@ -227,6 +285,8 @@ class BioGui(tk.Tk):
         self.progress_label.config(text="0 / 0")
         self.file_label.config(text="")
         self._log("Running...")
+        self._set_options_enabled(False)
+
 
         self._polling = True
         self.after(50, self._poll_queue)
@@ -278,7 +338,6 @@ class BioGui(tk.Tk):
             self.cancel_btn.config(state="disabled")
 
     def _poll_queue(self) -> None:
-        # Main thread: safe to touch Tkinter here
         try:
             while True:
                 item = self._q.get_nowait()
@@ -287,6 +346,10 @@ class BioGui(tk.Tk):
                 if kind == "progress":
                     _, current, total = item
                     self._set_progress(int(current), int(total))
+
+                elif kind == "file":
+                    _, filename, current, total = item
+                    self.file_label.config(text=f"Processing: {filename}")
 
                 elif kind == "done":
                     _, msg = item
@@ -300,12 +363,13 @@ class BioGui(tk.Tk):
                     self._finish_err(ex)
                     return
 
-                elif kind == "file":
-                    _, filename, current, total = item
-                    self.file_label.config(text=f"Processing: {filename}")
-
         except queue.Empty:
             pass
+        except Exception as ex:
+            # If polling crashes, recover UI instead of freezing
+            self._polling = False
+            self._finish_err(ex)
+            return
 
         if self._polling:
             self.after(50, self._poll_queue)
@@ -317,6 +381,7 @@ class BioGui(tk.Tk):
         self._log(msg)
         self._log("Done.")
         self.file_label.config(text="")
+        self._set_options_enabled(True)
 
     def _finish_err(self, ex: Exception) -> None:
         self.run_btn.config(state="normal")
@@ -325,7 +390,7 @@ class BioGui(tk.Tk):
         self._log(f"ERROR: {ex}")
         messagebox.showerror("Error", str(ex))
         self.file_label.config(text="")
-
+        self._set_options_enabled(True)
 
     # ---------------- Helpers ----------------
     def _build_settings_from_ui(self) -> tuple[OptimizeSettings, list[Path]]:
@@ -383,6 +448,21 @@ class BioGui(tk.Tk):
         self.progress_var.set(min(current, max(total, 1)))
         self.progress_label.config(text=f"{current} / {total}")
 
+    def _set_options_enabled(self, enabled: bool) -> None:
+        for w in self._option_widgets:
+            try:
+                if not enabled:
+                    # Disable everything uniformly
+                    w.configure(state="disabled")
+                else:
+                    # Restore correct enabled state
+                    if isinstance(w, ttk.Combobox):
+                        w.configure(state="readonly")
+                    else:
+                        w.configure(state="normal")
+            except Exception:
+                # Ignore non-standard widgets safely
+                pass
 
     def _parse_optional_int(self, text: str):
         t = text.strip()
