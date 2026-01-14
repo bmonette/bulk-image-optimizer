@@ -76,6 +76,22 @@ def process_image(src_path: Path, s: OptimizeSettings) -> ProcessResult:
 
         tmp_bytes = _file_size(tmp_path)
 
+        if s.dry_run:
+            # Dry run: remove temp file and report estimated result
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except Exception:
+                pass
+
+            return ProcessResult(
+                src_path=src_path,
+                out_path=None,
+                src_bytes=src_bytes,
+                out_bytes=tmp_bytes,
+                changed=False,
+                skipped_reason="dry_run",
+            )
+
         if s.only_if_smaller and tmp_bytes >= src_bytes:
             # Special rule: if the user wants metadata stripped no matter what,
             # we allow writing even if the file isn't smaller.
