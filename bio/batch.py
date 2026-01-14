@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List, Sequence, Callable, Optional
+import threading
 
 from .engine import SUPPORTED_EXTS, process_image
 from .results import ProcessResult
@@ -82,6 +83,7 @@ def process_batch(
     settings: OptimizeSettings,
     recursive: bool = True,
     progress_callback: Optional[Callable[[int, int], None]] = None,
+    cancel_event: Optional[threading.Event] = None,
 ) -> tuple[List[ProcessResult], BatchSummary]:
     results: List[ProcessResult] = []
 
@@ -95,6 +97,9 @@ def process_batch(
     total = len(image_list)
 
     for idx, img_path in enumerate(image_list, start=1):
+        if cancel_event and cancel_event.is_set():
+            break
+
         if progress_callback:
             progress_callback(idx, total)
 
