@@ -31,6 +31,9 @@ class OptimizeSettings:
     # it's not smaller, so metadata stripping is guaranteed.
     write_even_if_bigger_when_stripping_metadata: bool = False
 
+    # If True, do not write files; only estimate output sizes
+    dry_run: bool = False
+
     # Naming
     suffix: str = "_optimized"  # e.g. photo.jpg -> photo_optimized.jpg
 
