@@ -1,9 +1,6 @@
+import threading
 import queue
 from typing import Any
-
-from __future__ import annotations
-
-import threading
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 from pathlib import Path
@@ -48,6 +45,7 @@ class BioGui(tk.Tk):
         self.webp_lossless = tk.BooleanVar(value=False)
 
         self._worker: threading.Thread | None = None
+        self._cancel_event = threading.Event()
 
         self._q: queue.Queue[tuple[str, Any]] = queue.Queue()
         self._polling = False
@@ -86,6 +84,9 @@ class BioGui(tk.Tk):
 
         self.run_btn = ttk.Button(bottom, text="Run", command=self._on_run)
         self.run_btn.pack(side="left")
+
+        self.cancel_btn = ttk.Button(bottom, text="Cancel", command=self._on_cancel, state="disabled")
+        self.cancel_btn.pack(side="left", padx=(8, 0))
 
         self.open_btn = ttk.Button(bottom, text="Open Output Folder", command=self._open_output, state="disabled")
         self.open_btn.pack(side="left", padx=(8, 0))
@@ -227,7 +228,6 @@ class BioGui(tk.Tk):
         def work():
             try:
                 def on_progress(current: int, total: int) -> None:
-                    # Worker thread: DO NOT touch Tkinter here
                     self._q.put(("progress", current, total))
 
                 results, summary = process_batch(
@@ -253,6 +253,15 @@ class BioGui(tk.Tk):
                 self._q.put(("done", msg))
             except Exception as ex:
                 self._q.put(("error", ex))
+
+        self._worker = threading.Thread(target=work, daemon=True)
+        self._worker.start()
+
+    def _on_cancel(self) -> None:
+        if self._worker and self._worker.is_alive():
+            self._cancel_event.set()
+            self._log("Cancel requested... finishing current file.")
+            self.cancel_btn.config(state="disabled")
 
     def _poll_queue(self) -> None:
         # Main thread: safe to touch Tkinter here
