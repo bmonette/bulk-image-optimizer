@@ -57,6 +57,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="If stripping metadata, still write even if output isn't smaller",
     )
     opt.add_argument("--suffix", default="_optimized", help="Filename suffix (default: _optimized)")
+    opt.add_argument(
+        "--allow-reprocess",
+        action="store_true",
+        help="Allow processing files that already have the output suffix",
+    )
     opt.add_argument("--no-recursive", action="store_true", help="Do not scan folders recursively")
 
     # Format
@@ -118,6 +123,7 @@ def main(argv: list[str] | None = None) -> int:
             overwrite=bool(args.overwrite),
             only_if_smaller=bool(args.only_if_smaller),
             write_even_if_bigger_when_stripping_metadata=bool(args.allow_bigger_for_metadata),
+            skip_existing_suffix=not bool(args.allow_reprocess),
             suffix=str(args.suffix),
             strip_metadata=strip_metadata,
             auto_orient=True,  # keep this sane for CLI v1
