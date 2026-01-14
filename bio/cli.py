@@ -45,6 +45,7 @@ def build_parser() -> argparse.ArgumentParser:
         default=True,
         help="Only write output when smaller (default: on)",
     )
+    opt.add_argument("--dry-run", action="store_true", help="Estimate savings without writing files")
     opt.add_argument(
         "--allow-bigger-for-metadata",
         action="store_true",
@@ -123,6 +124,7 @@ def main(argv: list[str] | None = None) -> int:
             jpeg_quality=int(args.quality),
             webp_quality=int(args.webp_quality),
             webp_lossless=bool(args.webp_lossless),
+            dry_run=bool(args.dry_run),
         )
 
         results, summary = process_batch(
