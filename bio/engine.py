@@ -55,15 +55,14 @@ def process_image(src_path: Path, s: OptimizeSettings) -> ProcessResult:
         if s.auto_orient:
             im = ImageOps.exif_transpose(im)
 
+        # Resize (optional)
+        im = _apply_resize(im, s)
+
         out_format = _choose_output_format(src_path, s)
         out_path = _build_output_path(src_path, s, out_format)
 
         if out_path.exists() and not s.overwrite:
             out_path = _next_available_name(out_path)
-
-        # Resize (optional)
-        im = _apply_resize(im, s)
-
 
         # If converting to JPEG and image has alpha, flatten onto background.
         if out_format == "jpeg" and _has_alpha(im):
