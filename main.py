@@ -11,11 +11,12 @@ def main() -> None:
         output_dir=Path("C:/test/output"),
         output_format="keep",
         strip_metadata=True,
-        only_if_smaller=True,  # skip outputs that are larger...
-        write_even_if_bigger_when_stripping_metadata=False,  # ...unless you want guaranteed metadata stripping
+        only_if_smaller=True,
+        write_even_if_bigger_when_stripping_metadata=True,  # <-- the whole point of Test B
         overwrite=False,
         jpeg_quality=82,
     )
+
 
 
     results, summary = process_batch(inputs, settings, recursive=True)
