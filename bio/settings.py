@@ -39,6 +39,8 @@ class OptimizeSettings:
     max_width: Optional[int] = None
     max_height: Optional[int] = None
     scale_percent: Optional[int] = None  # e.g. 50 means 50%
+    allow_upscale: bool = False  # default: never make images bigger in pixels
+
 
     # ----- Crop (v1: center crop by aspect ratio) -----
     # If crop_ratio is None, cropping is skipped.
