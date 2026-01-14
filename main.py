@@ -9,10 +9,10 @@ def main() -> None:
 
     settings = OptimizeSettings(
         output_dir=Path("C:/test/output"),
-        output_format="keep",       # try "webp"
+        output_format="keep",
         strip_metadata=True,
-        only_if_smaller=True,
-        overwrite=False,
+        only_if_smaller=True,   # skip writing files that would be larger
+        overwrite=False,        # keep originals safe; auto-rename if needed
         jpeg_quality=82,
     )
 
