@@ -217,6 +217,8 @@ class BioGui(tk.Tk):
 
         self.run_btn.config(state="disabled")
         self.open_btn.config(state="disabled")
+        self._cancel_event.clear()
+        self.cancel_btn.config(state="normal")
         self.progress_var.set(0)
         self.progress["maximum"] = 1
         self.progress_label.config(text="0 / 0")
@@ -235,14 +237,18 @@ class BioGui(tk.Tk):
                     settings,
                     recursive=True,
                     progress_callback=on_progress,
+                    cancel_event=self._cancel_event,
                 )
 
                 report = build_report(results, summary)
                 save_report_json(report, settings.output_dir / "report.json")
                 save_report_csv(report, settings.output_dir / "report.csv")
 
+                was_cancelled = self._cancel_event.is_set()
+
+                status_line = "CANCELLED" if was_cancelled else "DONE"
                 msg = (
-                    f"\n=== Batch Summary ===\n"
+                    f"\n=== Batch Summary ({status_line}) ===\n"
                     f"Total found: {summary.total_files}\n"
                     f"Processed  : {summary.processed}\n"
                     f"Skipped    : {summary.skipped}\n"
@@ -295,12 +301,14 @@ class BioGui(tk.Tk):
     def _finish_ok(self, msg: str) -> None:
         self.run_btn.config(state="normal")
         self.open_btn.config(state="normal")
+        self.cancel_btn.config(state="disabled")
         self._log(msg)
         self._log("Done.")
 
     def _finish_err(self, ex: Exception) -> None:
         self.run_btn.config(state="normal")
         self.open_btn.config(state="disabled")
+        self.cancel_btn.config(state="disabled")
         self._log(f"ERROR: {ex}")
         messagebox.showerror("Error", str(ex))
 
