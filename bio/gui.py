@@ -300,6 +300,10 @@ class BioGui(tk.Tk):
                     self._finish_err(ex)
                     return
 
+                elif kind == "file":
+                    _, filename, current, total = item
+                    self.file_label.config(text=f"Processing: {filename}")
+
         except queue.Empty:
             pass
 
@@ -312,6 +316,7 @@ class BioGui(tk.Tk):
         self.cancel_btn.config(state="disabled")
         self._log(msg)
         self._log("Done.")
+        self.file_label.config(text="")
 
     def _finish_err(self, ex: Exception) -> None:
         self.run_btn.config(state="normal")
@@ -319,6 +324,8 @@ class BioGui(tk.Tk):
         self.cancel_btn.config(state="disabled")
         self._log(f"ERROR: {ex}")
         messagebox.showerror("Error", str(ex))
+        self.file_label.config(text="")
+
 
     # ---------------- Helpers ----------------
     def _build_settings_from_ui(self) -> tuple[OptimizeSettings, list[Path]]:
