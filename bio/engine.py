@@ -61,6 +61,10 @@ def process_image(src_path: Path, s: OptimizeSettings) -> ProcessResult:
         if out_path.exists() and not s.overwrite:
             out_path = _next_available_name(out_path)
 
+        # Resize (optional)
+        im = _apply_resize(im, s)
+
+
         # If converting to JPEG and image has alpha, flatten onto background.
         if out_format == "jpeg" and _has_alpha(im):
             im = _flatten_alpha(im, s.jpeg_background)
@@ -208,3 +212,48 @@ def _file_size(p: Path) -> int:
         return p.stat().st_size
     except FileNotFoundError:
         return 0
+
+
+def _apply_resize(im: Image.Image, s: OptimizeSettings) -> Image.Image:
+    """
+    Apply resizing based on settings.
+    - scale_percent takes precedence if set
+    - otherwise max_width/max_height define a bounding box
+    - never upscale unless allow_upscale=True
+    """
+    w, h = im.size
+
+    # 1) Percent scaling
+    if s.scale_percent is not None:
+        pct = max(1, int(s.scale_percent))
+        new_w = max(1, (w * pct) // 100)
+        new_h = max(1, (h * pct) // 100)
+
+        if not s.allow_upscale and (new_w > w or new_h > h):
+            return im
+
+        if (new_w, new_h) == (w, h):
+            return im
+
+        return im.resize((new_w, new_h), Image.Resampling.LANCZOS)
+
+    # 2) Fit within max dimensions
+    if s.max_width is None and s.max_height is None:
+        return im
+
+    max_w = s.max_width if s.max_width is not None else w
+    max_h = s.max_height if s.max_height is not None else h
+
+    # compute scale factor that keeps aspect ratio
+    scale = min(max_w / w, max_h / h)
+
+    if not s.allow_upscale and scale >= 1.0:
+        return im
+
+    new_w = max(1, int(w * scale))
+    new_h = max(1, int(h * scale))
+
+    if (new_w, new_h) == (w, h):
+        return im
+
+    return im.resize((new_w, new_h), Image.Resampling.LANCZOS)
