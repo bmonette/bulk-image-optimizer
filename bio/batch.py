@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, List, Sequence
+from typing import Iterable, List, Sequence, Callable, Optional
 
 from .engine import SUPPORTED_EXTS, process_image
 from .results import ProcessResult
@@ -81,6 +81,7 @@ def process_batch(
     inputs: Sequence[Path],
     settings: OptimizeSettings,
     recursive: bool = True,
+    progress_callback: Optional[Callable[[int, int], None]] = None,
 ) -> tuple[List[ProcessResult], BatchSummary]:
     results: List[ProcessResult] = []
 
@@ -90,7 +91,13 @@ def process_batch(
     skipped = 0
     total_files = 0
 
-    for img_path in iter_images(inputs, recursive=recursive, exclude_dir=settings.output_dir):
+    image_list = list(iter_images(inputs, recursive=recursive, exclude_dir=settings.output_dir))
+    total = len(image_list)
+
+    for idx, img_path in enumerate(image_list, start=1):
+        if progress_callback:
+            progress_callback(idx, total)
+
         total_files += 1
         r = process_image(img_path, settings)
         results.append(r)
