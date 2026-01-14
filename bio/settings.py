@@ -36,6 +36,7 @@ class OptimizeSettings:
 
     # Naming
     suffix: str = "_optimized"  # e.g. photo.jpg -> photo_optimized.jpg
+    skip_existing_suffix: bool = True
 
     # ----- Metadata -----
     strip_metadata: bool = True
