@@ -77,20 +77,23 @@ def process_image(src_path: Path, s: OptimizeSettings) -> ProcessResult:
         tmp_bytes = _file_size(tmp_path)
 
         if s.only_if_smaller and tmp_bytes >= src_bytes:
-            # Not smaller -> discard temp output
-            try:
-                tmp_path.unlink(missing_ok=True)
-            except Exception:
-                pass
+            # Special rule: if the user wants metadata stripped no matter what,
+            # we allow writing even if the file isn't smaller.
+            if not (s.strip_metadata and s.write_even_if_bigger_when_stripping_metadata):
+                try:
+                    tmp_path.unlink(missing_ok=True)
+                except Exception:
+                    pass
 
-            return ProcessResult(
-                src_path=src_path,
-                out_path=None,
-                src_bytes=src_bytes,
-                out_bytes=src_bytes,
-                changed=False,
-                skipped_reason="not_smaller",
-            )
+                return ProcessResult(
+                    src_path=src_path,
+                    out_path=None,
+                    src_bytes=src_bytes,
+                    out_bytes=src_bytes,
+                    changed=False,
+                    skipped_reason="not_smaller",
+                )
+            # else: continue, and we will write the output anyway
 
         # Move temp file to final destination (atomic replace if overwrite)
         _finalize_output(tmp_path, out_path, overwrite=s.overwrite)
