@@ -3,6 +3,10 @@ from pathlib import Path
 from bio.batch import process_batch
 from bio.settings import OptimizeSettings
 from bio.report import build_report, save_report_json, save_report_csv
+from bio.cli import main
+
+if __name__ == "__main__":
+    raise SystemExit(main())
 
 
 def main() -> None:
