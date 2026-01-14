@@ -84,6 +84,7 @@ def process_batch(
     recursive: bool = True,
     progress_callback: Optional[Callable[[int, int], None]] = None,
     cancel_event: Optional[threading.Event] = None,
+    file_callback: Optional[Callable[[Path, int, int], None]] = None,
 ) -> tuple[List[ProcessResult], BatchSummary]:
     results: List[ProcessResult] = []
 
@@ -102,6 +103,9 @@ def process_batch(
 
         if progress_callback:
             progress_callback(idx, total)
+
+        if file_callback:
+            file_callback(img_path, idx, total)
 
         total_files += 1
         r = process_image(img_path, settings)
