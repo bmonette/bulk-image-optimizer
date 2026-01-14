@@ -2,7 +2,7 @@ from pathlib import Path
 
 from bio.batch import process_batch
 from bio.settings import OptimizeSettings
-from bio.report import build_report, save_report_json
+from bio.report import build_report, save_report_json, save_report_csv
 
 
 def main() -> None:
@@ -33,7 +33,11 @@ def main() -> None:
     save_report_json(report, report_path)
     print("\nReport written:", report_path)
 
-    # Optional: print skip reasons breakdown (simple)
+    csv_path = settings.output_dir / "report.csv"
+    save_report_csv(report, csv_path)
+    print("CSV written   :", csv_path)
+
+    # Optional: print skip reasons breakdown
     reasons = {}
     for r in results:
         if r.out_path is None and r.skipped_reason:
