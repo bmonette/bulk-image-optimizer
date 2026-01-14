@@ -43,6 +43,17 @@ def process_image(src_path: Path, s: OptimizeSettings) -> ProcessResult:
             skipped_reason="unsupported_extension",
         )
 
+    # Skip files that already look optimized (by suffix)
+    if s.skip_existing_suffix and src_path.stem.endswith(s.suffix):
+        return ProcessResult(
+            src_path=src_path,
+            out_path=None,
+            src_bytes=src_bytes,
+            out_bytes=src_bytes,
+            changed=False,
+            skipped_reason="already_optimized",
+        )
+
     s = _normalize_settings(s)
 
     # Ensure output directory exists
