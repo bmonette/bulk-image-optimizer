@@ -28,23 +28,53 @@ class BatchSummary:
         return (self.saved_bytes / self.total_src_bytes) * 100.0
 
 
-def iter_images(paths: Sequence[Path], recursive: bool = True) -> Iterable[Path]:
+def _is_relative_to(child: Path, parent: Path) -> bool:
+    """Compat helper for Python < 3.9 Path.is_relative_to()."""
+    try:
+        child.relative_to(parent)
+        return True
+    except ValueError:
+        return False
+
+
+def iter_images(
+    paths: Sequence[Path],
+    recursive: bool = True,
+    exclude_dir: Optional[Path] = None,
+) -> Iterable[Path]:
     """
     Yield supported image paths from a mixture of files and directories.
+
+    exclude_dir:
+        If provided, any files inside this directory will be skipped.
+        (Prevents re-processing output files when output_dir is inside input_dir.)
     """
+    exclude_resolved = exclude_dir.resolve() if exclude_dir else None
+
     for p in paths:
         p = Path(p)
 
+        # If it's a file, just yield it if supported and not excluded
         if p.is_file():
             if p.suffix.lower() in SUPPORTED_EXTS:
+                if exclude_resolved and _is_relative_to(p.resolve(), exclude_resolved):
+                    continue
                 yield p
             continue
 
+        # If it's a directory, walk it
         if p.is_dir():
             pattern = "**/*" if recursive else "*"
             for f in p.glob(pattern):
-                if f.is_file() and f.suffix.lower() in SUPPORTED_EXTS:
-                    yield f
+                if not f.is_file():
+                    continue
+                if f.suffix.lower() not in SUPPORTED_EXTS:
+                    continue
+
+                if exclude_resolved and _is_relative_to(f.resolve(), exclude_resolved):
+                    continue
+
+                yield f
 
 
 def process_batch(
@@ -60,7 +90,7 @@ def process_batch(
     skipped = 0
     total_files = 0
 
-    for img_path in iter_images(inputs, recursive=recursive):
+    for img_path in iter_images(inputs, recursive=recursive, exclude_dir=settings.output_dir):
         total_files += 1
         r = process_image(img_path, settings)
         results.append(r)
