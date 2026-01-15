@@ -10,6 +10,9 @@ from .report import build_report, save_report_csv, save_report_json
 from .settings import OptimizeSettings
 
 
+APP_VERSION = "1.0.0"
+
+
 def run_app() -> None:
     app = BioGui()
     app.mainloop()
@@ -18,7 +21,7 @@ def run_app() -> None:
 class BioGui(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
-        self.title("Bulk Image Optimizer")
+        self.title("Bulk Image Optimizer v{APP_VERSION}")
         self.geometry("820x520")
         self.minsize(780, 480)
 
